@@ -10,6 +10,13 @@ import com.saucesubfresh.starter.schedule.executor.ScheduleTaskExecutor;
 public interface ScheduleTaskExecutorManager {
 
     /**
+     * 放入执行器
+     *
+     * @param scheduleName
+     * @param executor
+     */
+    void put(String scheduleName, ScheduleTaskExecutor executor);
+    /**
      * 根据调度器名称获取调度任务的执行器
      *
      * @param scheduleName

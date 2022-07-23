@@ -68,7 +68,8 @@ public class ScheduleTaskAutoConfiguration {
   public ScheduleTaskInitializer taskInitializer(TaskJobScheduler taskJobScheduler,
                                                  ScheduleTaskLoader scheduleTaskLoader,
                                                  ScheduleTaskPoolManager scheduleTaskPoolManager,
-                                                 ScheduleTaskQueueManager scheduleTaskQueueManager){
-    return new DefaultScheduleTaskInitializer(taskJobScheduler, scheduleTaskLoader, scheduleTaskPoolManager, scheduleTaskQueueManager);
+                                                 ScheduleTaskQueueManager scheduleTaskQueueManager,
+                                                 ScheduleTaskExecutorManager scheduleTaskExecutorManager){
+    return new DefaultScheduleTaskInitializer(taskJobScheduler, scheduleTaskLoader, scheduleTaskPoolManager, scheduleTaskQueueManager, scheduleTaskExecutorManager);
   }
 }
