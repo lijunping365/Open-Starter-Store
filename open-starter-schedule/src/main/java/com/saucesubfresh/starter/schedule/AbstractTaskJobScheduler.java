@@ -3,7 +3,7 @@ package com.saucesubfresh.starter.schedule;
 import com.saucesubfresh.starter.schedule.cron.CronHelper;
 import com.saucesubfresh.starter.schedule.domain.ScheduleTask;
 import com.saucesubfresh.starter.schedule.executor.ScheduleTaskExecutor;
-import com.saucesubfresh.starter.schedule.executor.ScheduleTaskExecutorManager;
+import com.saucesubfresh.starter.schedule.manager.ScheduleTaskExecutorManager;
 import com.saucesubfresh.starter.schedule.manager.ScheduleTaskPoolManager;
 import com.saucesubfresh.starter.schedule.manager.ScheduleTaskQueueManager;
 import lombok.extern.slf4j.Slf4j;

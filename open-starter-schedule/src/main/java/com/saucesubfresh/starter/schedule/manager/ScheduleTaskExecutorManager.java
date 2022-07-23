@@ -1,4 +1,6 @@
-package com.saucesubfresh.starter.schedule.executor;
+package com.saucesubfresh.starter.schedule.manager;
+
+import com.saucesubfresh.starter.schedule.executor.ScheduleTaskExecutor;
 
 /**
  * 调度任务执行器的管理器

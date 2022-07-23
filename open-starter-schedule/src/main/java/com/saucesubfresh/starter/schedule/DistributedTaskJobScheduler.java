@@ -1,7 +1,7 @@
 package com.saucesubfresh.starter.schedule;
 
 import com.saucesubfresh.starter.schedule.exception.ScheduleException;
-import com.saucesubfresh.starter.schedule.executor.ScheduleTaskExecutorManager;
+import com.saucesubfresh.starter.schedule.manager.ScheduleTaskExecutorManager;
 import com.saucesubfresh.starter.schedule.manager.ScheduleTaskPoolManager;
 import com.saucesubfresh.starter.schedule.manager.ScheduleTaskQueueManager;
 import com.saucesubfresh.starter.schedule.properties.ScheduleProperties;
