@@ -11,5 +11,5 @@ public interface ScheduleTaskInitializer {
     /**
      * 初始化调度任务
      */
-    void initialize();
+    void init();
 }

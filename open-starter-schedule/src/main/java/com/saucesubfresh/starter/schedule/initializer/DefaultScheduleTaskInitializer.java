@@ -1,5 +1,6 @@
 package com.saucesubfresh.starter.schedule.initializer;
 
+import com.saucesubfresh.starter.schedule.TaskJobScheduler;
 import com.saucesubfresh.starter.schedule.annotation.OpenSchedule;
 import com.saucesubfresh.starter.schedule.cron.CronHelper;
 import com.saucesubfresh.starter.schedule.domain.ScheduleTask;
@@ -9,7 +10,6 @@ import com.saucesubfresh.starter.schedule.loader.ScheduleTaskLoader;
 import com.saucesubfresh.starter.schedule.manager.ScheduleTaskExecutorManager;
 import com.saucesubfresh.starter.schedule.manager.ScheduleTaskPoolManager;
 import com.saucesubfresh.starter.schedule.manager.ScheduleTaskQueueManager;
-import com.saucesubfresh.starter.schedule.TaskJobScheduler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeansException;
@@ -20,11 +20,9 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.ObjectUtils;
 
 import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author: 李俊平
@@ -53,8 +51,11 @@ public class DefaultScheduleTaskInitializer implements ScheduleTaskInitializer, 
     }
 
     @Override
-    public void initialize() {
-        List<ScheduleTask> scheduleTasks = scheduleTaskLoader.loadScheduleTask();
+    public void init() {
+        List<ScheduleTask> scheduleTasks = new ArrayList<>();
+        scheduleTasks.addAll(initClazzJobHandler());
+        scheduleTasks.addAll(initMethodJobHandler());
+        scheduleTasks.addAll(scheduleTaskLoader.loadScheduleTask());
         if (!CollectionUtils.isEmpty(scheduleTasks)){
             scheduleTaskPoolManager.addAll(scheduleTasks);
             for (ScheduleTask task : scheduleTasks) {
@@ -73,7 +74,7 @@ public class DefaultScheduleTaskInitializer implements ScheduleTaskInitializer, 
     @Override
     public void afterPropertiesSet() throws Exception {
         try {
-            initialize();
+            init();
             log.info("Schedule task initialize succeed");
         }catch (Exception e){
             log.error("Schedule task initialize failed, {}", e.getMessage());
@@ -85,20 +86,35 @@ public class DefaultScheduleTaskInitializer implements ScheduleTaskInitializer, 
         taskJobScheduler.stop();
     }
 
-    private void initClazzJobHandler(){
+    private List<ScheduleTask> initClazzJobHandler(){
         Map<String, Object> beans = applicationContext.getBeansWithAnnotation(OpenSchedule.class);
-        if (ObjectUtils.isEmpty(beans)){
-            log.warn("No ScheduleTaskExecutor instance is defined.");
-        }else {
+        if (!CollectionUtils.isEmpty(beans)){
+            List<ScheduleTask> scheduleTasks = new ArrayList<>();
             beans.forEach((k,v)->{
                 OpenSchedule annotation = v.getClass().getAnnotation(OpenSchedule.class);
-                scheduleTaskExecutorManager.put(annotation.value(), (ScheduleTaskExecutor) v);
+                String name = annotation.value();
+                if (StringUtils.isBlank(name)) {
+                    throw new RuntimeException("OpenSchedule class-executor name invalid, for[" + k +"] .");
+                }
+                if (scheduleTaskExecutorManager.getTaskExecutor(name) != null) {
+                    throw new RuntimeException("OpenSchedule executor[" + name + "] naming conflicts.");
+                }
+                scheduleTaskExecutorManager.put(name, (ScheduleTaskExecutor) v);
+                if (!Objects.equals(annotation.taskId(), 0L) && StringUtils.isNotBlank(annotation.cron())){
+                    ScheduleTask scheduleTask = buildScheduleTask(name, annotation.taskId(), annotation.cron());
+                    scheduleTasks.add(scheduleTask);
+                }
             });
+            return scheduleTasks;
+        }else {
+            log.warn("No ScheduleTaskExecutor instance is defined.");
+            return Collections.emptyList();
         }
     }
 
-    private void initMethodJobHandler(){
+    private List<ScheduleTask> initMethodJobHandler(){
         String[] beanDefinitionNames = applicationContext.getBeanNamesForType(Object.class, false, true);
+        List<ScheduleTask> scheduleTasks = new ArrayList<>();
         for (String beanDefinitionName : beanDefinitionNames) {
             Object bean = applicationContext.getBean(beanDefinitionName);
             // referred to ：org.springframework.context.event.EventListenerMethodProcessor.processBean
@@ -121,26 +137,34 @@ public class DefaultScheduleTaskInitializer implements ScheduleTaskInitializer, 
             for (Map.Entry<Method, OpenSchedule> methodScheduleExecutorEntry : annotatedMethods.entrySet()) {
                 Method executeMethod = methodScheduleExecutorEntry.getKey();
                 OpenSchedule annotation = methodScheduleExecutorEntry.getValue();
-                buildScheduleExecutor(annotation, bean, executeMethod);
+                String name = annotation.value();
+                if (StringUtils.isBlank(name)) {
+                    throw new RuntimeException("OpenSchedule method-executor name invalid, for[" + bean.getClass() + "#" + executeMethod.getName() + "] .");
+                }
+                if (scheduleTaskExecutorManager.getTaskExecutor(name) != null) {
+                    throw new RuntimeException("OpenSchedule executor[" + name + "] naming conflicts.");
+                }
+                ScheduleTaskExecutor executor = buildScheduleExecutor(bean, executeMethod);
+                scheduleTaskExecutorManager.put(name, executor);
+                if (!Objects.equals(annotation.taskId(), 0L) && StringUtils.isNotBlank(annotation.cron())){
+                    ScheduleTask scheduleTask = buildScheduleTask(name, annotation.taskId(), annotation.cron());
+                    scheduleTasks.add(scheduleTask);
+                }
             }
         }
+        return scheduleTasks;
     }
 
-    private void buildScheduleExecutor(OpenSchedule scheduleExecutor, Object bean, Method executeMethod){
-        if (scheduleExecutor == null) {
-            return;
-        }
-
-        String name = scheduleExecutor.value();
-        Class<?> clazz = bean.getClass();
-        String methodName = executeMethod.getName();
-        if (StringUtils.isBlank(name)) {
-            throw new RuntimeException("OpenSchedule method-executor name invalid, for[" + clazz + "#" + methodName + "] .");
-        }
-        if (scheduleTaskExecutorManager.getTaskExecutor(name) != null) {
-            throw new RuntimeException("OpenSchedule executor[" + name + "] naming conflicts.");
-        }
+    private ScheduleTaskExecutor buildScheduleExecutor(Object bean, Method executeMethod){
         executeMethod.setAccessible(true);
-        scheduleTaskExecutorManager.put(name, new MethodScheduleTaskExecutor(bean, executeMethod));
+        return new MethodScheduleTaskExecutor(bean, executeMethod);
+    }
+
+    private ScheduleTask buildScheduleTask(String scheduleName, Long taskId, String cron){
+        ScheduleTask scheduleTask = new ScheduleTask();
+        scheduleTask.setScheduleName(scheduleName);
+        scheduleTask.setTaskId(taskId);
+        scheduleTask.setCronExpression(cron);
+        return scheduleTask;
     }
 }

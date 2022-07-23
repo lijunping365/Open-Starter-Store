@@ -92,7 +92,7 @@ public abstract class AbstractTaskJobScheduler implements TaskJobScheduler {
     }
 
     /**
-     * 执行分组任务，分组依据就是 scheduleName
+     * 任务分组执行，分组依据就是 scheduleName
      *
      * @param taskIds
      * @throws Exception
