@@ -49,15 +49,11 @@ public class DistributedTaskJobScheduler extends AbstractTaskJobScheduler {
     }
 
     @Override
-    protected void runTask(List<Long> taskIds) {
+    protected void runTask(List<Long> taskIds) throws Exception {
         RLock lock = redissonClient.getLock(lockName);
         long waitTime = 1000 - System.currentTimeMillis() % 1000;
-        try {
-            if (lock.tryLock(waitTime, waitTime, TimeUnit.MILLISECONDS)){
-                scheduleTaskExecutor.execute(taskIds);
-            }
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
+        if (lock.tryLock(waitTime, waitTime, TimeUnit.MILLISECONDS)){
+            scheduleTaskExecutor.execute(taskIds);
         }
     }
 }

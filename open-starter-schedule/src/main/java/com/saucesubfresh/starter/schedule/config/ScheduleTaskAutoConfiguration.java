@@ -3,8 +3,10 @@ package com.saucesubfresh.starter.schedule.config;
 
 import com.saucesubfresh.starter.schedule.DefaultTaskJobScheduler;
 import com.saucesubfresh.starter.schedule.TaskJobScheduler;
-import com.saucesubfresh.starter.schedule.executor.DefaultScheduleTaskExecutor;
+import com.saucesubfresh.starter.schedule.annotation.EnableOpenSchedule;
+import com.saucesubfresh.starter.schedule.executor.DefaultScheduleTaskExecutorManager;
 import com.saucesubfresh.starter.schedule.executor.ScheduleTaskExecutor;
+import com.saucesubfresh.starter.schedule.executor.ScheduleTaskExecutorManager;
 import com.saucesubfresh.starter.schedule.initializer.DefaultScheduleTaskInitializer;
 import com.saucesubfresh.starter.schedule.initializer.ScheduleTaskInitializer;
 import com.saucesubfresh.starter.schedule.loader.DefaultScheduleTaskLoader;
@@ -14,6 +16,7 @@ import com.saucesubfresh.starter.schedule.manager.LocalScheduleTaskPoolManager;
 import com.saucesubfresh.starter.schedule.manager.ScheduleTaskPoolManager;
 import com.saucesubfresh.starter.schedule.manager.ScheduleTaskQueueManager;
 import com.saucesubfresh.starter.schedule.properties.ScheduleProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -26,6 +29,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(ScheduleProperties.class)
+@ConditionalOnBean(annotation = {EnableOpenSchedule.class})
 public class ScheduleTaskAutoConfiguration {
 
   @Bean
@@ -48,8 +52,8 @@ public class ScheduleTaskAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ScheduleTaskExecutor scheduleTaskExecutor(){
-    return new DefaultScheduleTaskExecutor();
+  public ScheduleTaskExecutorManager scheduleTaskExecutorManager(){
+    return new DefaultScheduleTaskExecutorManager();
   }
 
   @Bean

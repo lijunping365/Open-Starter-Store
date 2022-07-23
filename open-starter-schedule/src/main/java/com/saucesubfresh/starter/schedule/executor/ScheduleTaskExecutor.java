@@ -12,6 +12,10 @@ import java.util.List;
  * @author lijunping on 2022/1/20
  */
 public interface ScheduleTaskExecutor {
-
-    void execute(List<Long> taskList);
+    /**
+     * 执行调度任务
+     * @param taskList
+     * @throws Exception
+     */
+    void execute(List<Long> taskList) throws Exception;
 }

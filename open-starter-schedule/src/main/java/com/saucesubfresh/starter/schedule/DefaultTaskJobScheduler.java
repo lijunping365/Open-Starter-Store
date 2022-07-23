@@ -24,7 +24,7 @@ public class DefaultTaskJobScheduler extends AbstractTaskJobScheduler {
     }
 
     @Override
-    protected void runTask(List<Long> taskIds) {
+    protected void runTask(List<Long> taskIds) throws Exception {
         scheduleTaskExecutor.execute(taskIds);
         super.threadSleep();
     }
