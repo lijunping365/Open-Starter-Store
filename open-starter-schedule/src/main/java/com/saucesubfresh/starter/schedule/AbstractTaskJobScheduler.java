@@ -2,14 +2,19 @@ package com.saucesubfresh.starter.schedule;
 
 import com.saucesubfresh.starter.schedule.cron.CronHelper;
 import com.saucesubfresh.starter.schedule.domain.ScheduleTask;
+import com.saucesubfresh.starter.schedule.executor.ScheduleTaskExecutor;
+import com.saucesubfresh.starter.schedule.executor.ScheduleTaskExecutorManager;
 import com.saucesubfresh.starter.schedule.manager.ScheduleTaskPoolManager;
 import com.saucesubfresh.starter.schedule.manager.ScheduleTaskQueueManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @author: 李俊平
@@ -22,11 +27,14 @@ public abstract class AbstractTaskJobScheduler implements TaskJobScheduler {
     private volatile boolean scheduleThreadToStop = false;
     private final ScheduleTaskPoolManager scheduleTaskPoolManager;
     private final ScheduleTaskQueueManager scheduleTaskQueueManager;
+    private final ScheduleTaskExecutorManager scheduleTaskExecutorManager;
 
     public AbstractTaskJobScheduler(ScheduleTaskPoolManager scheduleTaskPoolManager,
-                                    ScheduleTaskQueueManager scheduleTaskQueueManager) {
+                                    ScheduleTaskQueueManager scheduleTaskQueueManager,
+                                    ScheduleTaskExecutorManager scheduleTaskExecutorManager) {
         this.scheduleTaskPoolManager = scheduleTaskPoolManager;
         this.scheduleTaskQueueManager = scheduleTaskQueueManager;
+        this.scheduleTaskExecutorManager = scheduleTaskExecutorManager;
     }
 
     @Override
@@ -81,6 +89,34 @@ public abstract class AbstractTaskJobScheduler implements TaskJobScheduler {
                 }
             }
         }
+    }
+
+    /**
+     * 执行分组任务，分组依据就是 scheduleName
+     *
+     * @param taskIds
+     * @throws Exception
+     */
+    protected void executeTask(List<Long> taskIds) throws Exception{
+        if (CollectionUtils.isEmpty(taskIds)){
+            return;
+        }
+
+        List<ScheduleTask> scheduleTasks = new ArrayList<>();
+        for (Long taskId : taskIds) {
+            ScheduleTask task = scheduleTaskPoolManager.get(taskId);
+            if (Objects.isNull(task)){
+                log.warn("The taskId: {} has been removed from task pool", taskId);
+                continue;
+            }
+            scheduleTasks.add(task);
+        }
+
+        Map<String, List<ScheduleTask>> collect = scheduleTasks.stream().collect(Collectors.groupingBy(ScheduleTask::getScheduleName));
+        collect.forEach((key, value)->{
+            ScheduleTaskExecutor taskExecutor = scheduleTaskExecutorManager.getTaskExecutor(key);
+            taskExecutor.execute(value.stream().map(ScheduleTask::getTaskId).collect(Collectors.toList()));
+        });
     }
 
     protected void threadSleep(){

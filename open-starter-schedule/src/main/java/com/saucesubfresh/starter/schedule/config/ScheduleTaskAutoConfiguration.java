@@ -5,7 +5,6 @@ import com.saucesubfresh.starter.schedule.DefaultTaskJobScheduler;
 import com.saucesubfresh.starter.schedule.TaskJobScheduler;
 import com.saucesubfresh.starter.schedule.annotation.EnableOpenSchedule;
 import com.saucesubfresh.starter.schedule.executor.DefaultScheduleTaskExecutorManager;
-import com.saucesubfresh.starter.schedule.executor.ScheduleTaskExecutor;
 import com.saucesubfresh.starter.schedule.executor.ScheduleTaskExecutorManager;
 import com.saucesubfresh.starter.schedule.initializer.DefaultScheduleTaskInitializer;
 import com.saucesubfresh.starter.schedule.initializer.ScheduleTaskInitializer;
@@ -34,6 +33,12 @@ public class ScheduleTaskAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ScheduleTaskLoader scheduleTaskLoader(){
+    return new DefaultScheduleTaskLoader();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public ScheduleTaskPoolManager scheduleTaskManager(){
     return new LocalScheduleTaskPoolManager();
   }
@@ -46,22 +51,16 @@ public class ScheduleTaskAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ScheduleTaskLoader scheduleTaskLoader(){
-    return new DefaultScheduleTaskLoader();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
   public ScheduleTaskExecutorManager scheduleTaskExecutorManager(){
     return new DefaultScheduleTaskExecutorManager();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public TaskJobScheduler taskJobScheduler(ScheduleTaskExecutor scheduleTaskExecutor,
-                                           ScheduleTaskPoolManager scheduleTaskPoolManager,
-                                           ScheduleTaskQueueManager scheduleTaskQueueManager){
-    return new DefaultTaskJobScheduler(scheduleTaskExecutor, scheduleTaskPoolManager, scheduleTaskQueueManager);
+  public TaskJobScheduler taskJobScheduler(ScheduleTaskPoolManager scheduleTaskPoolManager,
+                                           ScheduleTaskQueueManager scheduleTaskQueueManager,
+                                           ScheduleTaskExecutorManager scheduleTaskExecutorManager){
+    return new DefaultTaskJobScheduler(scheduleTaskPoolManager, scheduleTaskQueueManager, scheduleTaskExecutorManager);
   }
 
   @Bean
